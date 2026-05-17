@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twinsky | Sky Sentinel</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            /* --- DEFAULT DARK THEME VARIABLES --- */
+            --bg-base: #020617;
+            --bg-grad-1: hsla(253,16%,7%,1);
+            --bg-grad-2: hsla(225,39%,30%,1);
+            --bg-grad-3: hsla(339,49%,30%,1);
+            
+            --glass-bg: rgba(20, 20, 40, 0.6);
+            --glass-border: rgba(139, 92, 246, 0.3);
+            
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            
+            --accent: #a78bfa; /* Light Violet */
+            --blue-accent: #3b82f6; 
+            
+            --neon-glow: rgba(124, 58, 237, 0.4); 
+            --search-bg: rgba(0,0,0,0.3);
+            --search-focus: rgba(0,0,0,0.5);
+            --dropdown-bg: #0f172a;
+            
+            --stat-card-bg: rgba(15, 23, 42, 0.6);
+            --chart-grid: rgba(255, 255, 255, 0.1);
+        }
+
+        /* --- LIGHT THEME VARIABLES --- */
+        [data-theme="light"] {
+            --bg-base: #f8fafc;
+            --bg-grad-1: #e0f2fe; /* Pale Sky */
+            --bg-grad-2: #f3e8ff; /* Pale Violet */
+            --bg-grad-3: #dbeafe; /* Pale Blue */
+            
+            --glass-bg: rgba(255, 255, 255, 0.65); /* White Frost */
+            --glass-border: rgba(255, 255, 255, 0.8);
+            
+            --text-primary: #1e293b; /* Slate 800 */
+            --text-secondary: #64748b; /* Slate 500 */
+            
+            --accent: #7c3aed; /* Darker Violet for contrast */
+            --blue-accent: #2563eb;
+            
+            --neon-glow: rgba(139, 92, 246, 0.15); /* Softer shadow */
+            --search-bg: rgba(255, 255, 255, 0.5);
+            --search-focus: rgba(255, 255, 255, 0.8);
+            --dropdown-bg: #ffffff;
+            
+            --stat-card-bg: rgba(255, 255, 255, 0.5);
+            --chart-grid: rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s; /* Smooth theme switch */
+        }
+
+        body {
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(at 0% 0%, var(--bg-grad-1) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, var(--bg-grad-2) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, var(--bg-grad-3) 0, transparent 50%);
+            background-size: 150% 150%;
+            animation: bgShift 15s ease infinite;
+            min-height: 100vh;
+            color: var(--text-primary);
+            display: flex;
+            overflow: hidden;
+        }
+        
+        @keyframes bgShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* --- Glassmorphism & Neon Utilities --- */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 
+                10px 10px 30px -5px var(--neon-glow), 
+                inset 1px 1px 0px rgba(255, 255, 255, 0.1); 
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            animation: borderRun 4s infinite alternate;
+            transition: transform 0.3s, background 0.3s, box-shadow 0.3s;
+        }
+
+        @keyframes borderRun {
+            0% { border-color: var(--glass-border); }
+            100% { border-color: var(--accent); }
+        }
+
+        
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 0;
+            height: 75vh; 
+            position: fixed;
+            top: 130px;
+            left: 2vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            z-index: 100;
+            overflow: hidden;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
+            padding-top: 1rem;
+        }
+
+        .sidebar.open {
+            width: 80px;
+            opacity: 1;
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg); 
+        }
+
+        .nav-item {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(59, 130, 246, 0.4));
+            color: #fff;
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            padding-left: 2rem; 
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            height: 100vh;
+            overflow-y: auto;
+            transition: padding-left 0.5s ease;
+        }
+
+        .sidebar-active .main-content {
+            padding-left: 100px; 
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 10px;
+            padding-left: 10px;
+        }
+
+        .app-logo {
+            font-size: 1.8rem;
+            color: var(--accent);
+            filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0.6));
+            white-space: nowrap;
+        }
+
+        .search-container {
+            position: relative;
+            width: 400px;
+        }
+
+        .search-bar {
+            width: 100%;
+            padding: 12px 20px 12px 45px;
+            background: var(--search-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            color: var(--text-primary);
+            outline: none;
+            transition: 0.3s;
+        }
+
+        .search-bar::placeholder { color: var(--text-secondary); }
+
+        .search-bar:focus { 
+            border-color: var(--accent); 
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+            background: var(--search-focus);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        .search-dropdown {
+            position: absolute;
+            top: 110%;
+            left: 0;
+            width: 100%;
+            background: var(--dropdown-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            display: none;
+            z-index: 100;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .dropdown-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid var(--glass-border); color: var(--text-primary); }
+        .dropdown-item:hover { background: rgba(139, 92, 246, 0.2); }
+
+        /* --- LAYOUT STRUCTURE --- */
+        .top-row {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 1.5rem;
+            min-height: 280px; 
+        }
+
+        .bottom-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            flex: 1; 
+            min-height: 0;
+        }
+
+        /* --- WEATHER CARD --- */
+        .weather-card {
+            padding: 2.5rem;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .weather-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .city-title { font-size: 2.2rem; font-weight: 700; margin-bottom: 5px; text-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .date-text { color: var(--text-secondary); font-size: 1rem; }
+        
+        .live-pill {
+            background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2));
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+        }
+
+        .weather-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end; 
+            margin-top: auto;
+        }
+
+        .temp-group { display: flex; flex-direction: column; gap: 10px; }
+        .temp-row { display: flex; align-items: center; gap: 20px; }
+        
+        .temp-val {
+            font-size: 5.5rem; 
+            font-weight: 700;
+            line-height: 1;
+            background: linear-gradient(to bottom, var(--text-primary) 30%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 5px 15px rgba(139, 92, 246, 0.3));
+        }
+        
+        .weather-icon-main {
+            font-size: 4.5rem;
+            color: var(--accent);
+            filter: drop-shadow(0 0 25px rgba(139, 92, 246, 0.6));
+            animation: floatIcon 3s ease-in-out infinite;
+        }
+        @keyframes floatIcon {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .condition-text {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-left: 5px;
+        }
+
+        .stats-group { display: flex; gap: 1rem; }
+        
+        .stat-card {
+            background: var(--stat-card-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.2rem;
+            width: 100px;
+            height: 110px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: 0.3s;
+        }
+        .stat-card:hover { background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.3); }
+        
+        .stat-icon { font-size: 1.2rem; color: var(--blue-accent); margin-bottom: 4px; filter: drop-shadow(0 0 5px var(--blue-accent));}
+        .stat-value { font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+        .stat-label { font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        
+        /* --- Chart & Forecast --- */
+        .chart-container {
+            padding: 1.5rem;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .chart-wrapper {
+            flex: 1;
+            position: relative;
+            width: 100%;
+        }
+
+        .forecast-panel {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            height: 100%;
+            overflow: hidden;
+        }
+        .forecast-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            overflow-y: auto;
+            padding-right: 10px;
+            height: 100%;
+        }
+        .forecast-list::-webkit-scrollbar { width: 6px; }
+        .forecast-list::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
+        .forecast-list::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+
+        .forecast-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.03);
+            transition: 0.2s;
+            border: 1px solid transparent;
+        }
+        /* Light mode adjustment for list items */
+        [data-theme="light"] .forecast-item { background: rgba(0,0,0,0.03); }
+        [data-theme="light"] .forecast-item:hover { background: rgba(0,0,0,0.06); }
+
+        .forecast-item:hover { 
+            background: rgba(255,255,255,0.08); 
+            transform: translateX(5px);
+            border-color: rgba(139, 92, 246, 0.3);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.1);
+        }
+
+        .f-day { width: 60px; font-weight: 500; font-size: 0.9rem; }
+        .f-icon { width: 30px; text-align: center; }
+        .f-temp { width: 60px; text-align: right; font-weight: 600; font-size: 0.9rem;}
+        
+        /* Loading Overlay */
+        .loading-overlay {
+            position: absolute;
+            top:0; left:0; width:100%; height:100%;
+            background: var(--bg-base);
+            backdrop-filter: blur(5px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.3s;
+        }
+        .loading-overlay.active { opacity: 1; pointer-events: all; }
+        
+        .spinner {
+            width: 40px; height: 40px;
+            border: 4px solid rgba(139, 92, 246, 0.3);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            box-shadow: 0 0 15px var(--accent);
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body id="appBody">
+
+   
+    <nav class="sidebar glass-panel" id="sidebar">
+        <div class="nav-item active"><i class="fa-solid fa-house"></i></div>
+        <div class="nav-item"><i class="fa-solid fa-map"></i></div>
+        <div class="nav-item"><i class="fa-solid fa-chart-pie"></i></div>
+        <div class="nav-item"><i class="fa-solid fa-gear"></i></div>
+    </nav>
+
+    <main class="main-content">
+        
+        <header class="header">
+            <div class="app-logo"><i class="fa-solid fa-cloud-bolt"></i></div>
+            <div class="search-container">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" class="search-bar" id="citySearch" placeholder="Search city..." autocomplete="off">
+                <div class="search-dropdown" id="searchDropdown"></div>
+            </div>
+            
+        </header>
+
+        <div class="top-row">
+            
+            <div class="glass-panel weather-card">
+                <div class="loading-overlay" id="loadingWeather">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 10px; font-size: 0.8rem; color: var(--text-secondary);">Running Prediction ML...</p>
+                </div>
+
+                <div class="weather-top">
+                    <div>
+                        <h2 class="city-title" id="cityName">{{ city }}</h2>
+                        <p class="date-text" id="currentDate">{{ time }}</p>
+
+                    </div>
+                    <div class="live-pill">Live Updates</div>
+                </div>
+
+                <div class="weather-content">
+                    <div class="temp-group">
+                        <div class="temp-row">
+                            <span class="temp-val" id="tempVal">{{ temperature }}°</span>
+                            <i class="fa-solid fa-cloud-rain weather-icon-main" id="weatherIcon" style="color: #a78bfa;"></i>
+                        </div>
+                        <p class="condition-text" id="condText">Rain</p>
+                    </div>
+
+                    <div class="stats-group">
+                        <div class="stat-card">
+                            <i class="fa-solid fa-wind stat-icon"></i>
+                            <span class="stat-value" id="windVal">1.5 km/h</span>
+                            <span class="stat-label">WIND</span>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fa-solid fa-droplet stat-icon"></i>
+                            <span class="stat-value" id="humVal">90%</span>
+                            <span class="stat-label">HUMIDITY</span>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fa-solid fa-gauge stat-icon"></i>
+                            <span class="stat-value" id="pressVal">1012 hPa</span>
+                            <span class="stat-label">PRESSURE</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+           
+        <div class="bottom-row">
+            <div class="glass-panel chart-container">
+                <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">Temperature Trend (ML Forecast)</h3>
+                <div class="chart-wrapper">
+                    <canvas id="tempChart"></canvas>
+                </div>
+            </div>
+
+            <div class="glass-panel forecast-panel">
+                <h3 style="font-size: 1.1rem;">10-Day Forecast</h3>
+                <div class="forecast-list" id="forecastList"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+    let chartInstance = null;
+    let currentCity = "London";
+
+    // 1. Function to update the Chart with ML Data
+    function updateMLChart(labels, temps) {
+        const ctx = document.getElementById('tempChart').getContext('2d');
+        if (chartInstance) { chartInstance.destroy(); }
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'ML Predicted Temp (°C)',
+                    data: temps,
+                    borderColor: '#8b5cf6',
+                    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#a0a0c0' }, grid: { display: false } },
+                    y: { ticks: { color: '#a0a0c0' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+                }
+            }
+        });
+    }
+
+    // 2. Function to fetch ML Forecast from your Prophet Model
+    async function fetchMLForecast() {
+        try {
+            const res = await fetch('/api/forecast');
+            const data = await res.json();
+            
+            const list = document.getElementById('forecastList');
+            list.innerHTML = '';
+            
+            const labels = [];
+            const temps = [];
+
+            data.forEach((day, index) => {
+                labels.push(day.date);
+                temps.push(day.temp);
+
+                // This matches your existing UI list style
+                const html = `
+                    <div class="forecast-item">
+                        <span class="f-day">${index === 0 ? 'Tomorrow' : day.date}</span>
+                        <div class="f-icon"><i class="fa-solid fa-chart-line" style="color: #a78bfa"></i></div>
+                        <div class="f-range" style="width: 80px; height: 4px; background: rgba(139,92,246,0.2); border-radius: 2px;">
+                            <div style="width: ${day.temp * 2}%; height: 100%; background: #8b5cf6; border-radius: 2px;"></div>
+                        </div>
+                        <span class="f-temp">${day.temp}°</span>
+                    </div>`;
+                list.innerHTML += html;
+            });
+
+            updateMLChart(labels, temps);
+        } catch (err) { console.error("ML Error:", err); }
+    }
+
+    // 3. Keep your existing working Weather Fetcher
+    async function fetchWeather(city) {
+        try {
+            const res = await fetch(`/api/weather?city=${city}`);
+            const data = await res.json();
+            if(data.error) return;
+
+            document.getElementById("cityName").innerText = data.city;
+            document.getElementById("tempVal").innerText = data.temp + "°";
+            document.getElementById("condText").innerText = data.condition;
+            document.getElementById("windVal").innerText = data.wind + " km/h";
+            document.getElementById("humVal").innerText = data.humidity + "%";
+            document.getElementById("pressVal").innerText = data.pressure + " hPa";
+        } catch (err) { console.error("Fetch error:", err); }
+    }
+
+    // Initialize on Page Load
+    document.addEventListener('DOMContentLoaded', () => {
+        const options = { weekday: 'long', month: 'long', day: 'numeric' };
+        document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', options);
+        
+        fetchWeather(currentCity);
+        fetchMLForecast(); // Real ML predictions from Prophet
+    });
+
+    // Handle Search
+    document.getElementById('citySearch').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            currentCity = this.value;
+            fetchWeather(currentCity);
+            this.value = '';
+        }
+    });
+</script>
+</body>
+</html> 
